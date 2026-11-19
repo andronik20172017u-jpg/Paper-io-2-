@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">PolyZone 3D</string>
+    <string name="tagline">3D Territory Arena</string>
+    <string name="play_now">SOLO ARENA</string>
+    <string name="play_multiplayer">QUICK ONLINE</string>
+    <string name="join_room">JOIN CODE</string>
+    <string name="play_again">REDEPLOY</string>
+    <string name="choose_craft">SELECT 3D UNIT</string>
+    <string name="choose_skin">SKINS &amp; COINS</string>
+    <string name="craft_drone">Cyber Delta</string>
+    <string name="craft_cruiser">Hex Cruiser</string>
+    <string name="craft_melon">Melon Slice</string>
+    <string name="territory_label">TERRITORY</string>
+    <string name="eliminations_label">TAKEDOWNS</string>
+    <string name="best_label">BEST</string>
+    <string name="victory_title">100% PERFECT WIN!</string>
+    <string name="defeat_title">UNIT DISSOLVED</string>
+    <string name="defeat_hint">Watch out for the Thief Raider bombs and protect your trail</string>
+    <string name="victory_hint">Total 3D arena domination achieved</string>
+    <string name="joystick_hint">Drag anywhere to steer • Tap BOMB to drop</string>
+    <string name="leaderboard_title">ARENA RANK</string>
+    <string name="switch_unit_format">3D Unit: %1$s (Tap to switch)</string>
+    <string name="sign_in_title">Enter PolyZone 3D Arena</string>
+    <string name="sign_in_subtitle">Sign in with Google to save coins, unlock Watermelon &amp; Gold skins, and join online rooms</string>
+    <string name="sign_in_google">Sign in with Google</string>
+    <string name="drop_bomb">BOMB</string>
+    <string name="room_code_hint">Room Code</string>
+    <string name="leave_room">EXIT ARENA</string>
+    <string name="back_to_lobby">BACK TO LOBBY</string>
+</resources>

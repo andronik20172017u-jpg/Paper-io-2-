@@ -1,0 +1,79 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated player profile storing persistent coin balance, unlocked skins, equipped 3D unit, and career bests.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID of the owner." },
+        "displayName": { "type": "string", "description": "Player display nickname." },
+        "coins": { "type": "integer", "description": "Persistent coin balance." },
+        "unlockedSkins": { "type": "array", "description": "List of unlocked skin IDs." },
+        "equippedSkin": { "type": "string", "description": "Currently selected skin ID." },
+        "equippedModel": { "type": "string", "description": "Currently selected 3D model ID." },
+        "bestPercent": { "type": "number", "description": "Highest territory capture percentage achieved." },
+        "totalKills": { "type": "integer", "description": "Career takedown count." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp on profile creation (FieldValue.serverTimestamp)." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on profile update (FieldValue.serverTimestamp)." }
+      },
+      "required": ["userId", "displayName", "coins", "unlockedSkins", "equippedSkin", "equippedModel", "bestPercent", "totalKills", "createdAt", "updatedAt"]
+    },
+    "MatchRoom": {
+      "title": "MatchRoom",
+      "description": "Multiplayer arena room supporting quick join, room code entry, and bot backfill.",
+      "type": "object",
+      "properties": {
+        "hostId": { "type": "string", "description": "UID of the room host." },
+        "roomCode": { "type": "string", "description": "Short join code for the room." },
+        "status": { "type": "string", "enum": ["waiting", "playing", "finished"], "description": "Current match status." },
+        "playerCount": { "type": "integer", "description": "Number of human players in the room (1..5)." },
+        "memberUids": { "type": "array", "description": "Bounded array of joined human UIDs (max 5)." },
+        "isPublic": { "type": "boolean", "description": "Whether quick-join can discover this room." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp on creation (FieldValue.serverTimestamp)." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on update (FieldValue.serverTimestamp)." }
+      },
+      "required": ["hostId", "roomCode", "status", "playerCount", "memberUids", "isPublic", "createdAt", "updatedAt"]
+    },
+    "RoomPlayer": {
+      "title": "RoomPlayer",
+      "description": "Real-time synchronized player state, position, trail coordinates, active bomb, kills, and territory percentage inside a room.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID of the player owning this slot." },
+        "displayName": { "type": "string", "description": "Player nickname shown in arena and leaderboard." },
+        "slotIndex": { "type": "integer", "description": "Arena slot index (0..4)." },
+        "x": { "type": "number", "description": "World X coordinate on arena." },
+        "z": { "type": "number", "description": "World Z coordinate on arena." },
+        "yaw": { "type": "number", "description": "Current heading angle in radians." },
+        "speed": { "type": "number", "description": "Current unit speed for client-side prediction." },
+        "alive": { "type": "boolean", "description": "Whether the unit is alive in the arena." },
+        "kills": { "type": "integer", "description": "Match takedown count." },
+        "territoryPct": { "type": "number", "description": "Current territory control percentage." },
+        "skinId": { "type": "string", "description": "Equipped skin identifier." },
+        "modelType": { "type": "string", "description": "Equipped 3D model identifier." },
+        "trailFlat": { "type": "array", "description": "Flattened XZ trail coordinates [x0, z0, ...]." },
+        "bombActive": { "type": "boolean", "description": "Whether player currently has an active dropped bomb." },
+        "bombX": { "type": "number", "description": "Bomb world X coordinate." },
+        "bombZ": { "type": "number", "description": "Bomb world Z coordinate." },
+        "bombTimer": { "type": "number", "description": "Remaining bomb fuse seconds." },
+        "roomOpen": { "type": "boolean", "description": "Denormalized flag allowing room participants to list player states." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on sync heartbeat (FieldValue.serverTimestamp)." }
+      },
+      "required": ["userId", "displayName", "slotIndex", "x", "z", "yaw", "speed", "alive", "kills", "territoryPct", "skinId", "modelType", "trailFlat", "bombActive", "bombX", "bombZ", "bombTimer", "roomOpen", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Per-user persistent profile for coins, skins, and stats."
+    },
+    "/rooms/{roomId}": {
+      "schema": { "$ref": "#/entities/MatchRoom" },
+      "description": "Multiplayer arena room metadata and membership."
+    },
+    "/rooms/{roomId}/players/{playerId}": {
+      "schema": { "$ref": "#/entities/RoomPlayer" },
+      "description": "Real-time multiplayer unit telemetry, trail, and bomb state."
+    }
+  }
+}

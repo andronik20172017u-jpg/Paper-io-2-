@@ -1,0 +1,6 @@
+{
+  "name": "PolyZone 3D",
+  "description": "3D Paper.io-style arena game powered by OpenGL ES 3.0, custom GLSL shaders, and 3D OBJ models.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

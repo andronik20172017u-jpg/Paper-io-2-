@@ -1,0 +1,150 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: default-deny all unspecified paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 30 &&
+             data.coins is int && data.coins >= 0 && data.coins <= 10000000 &&
+             data.unlockedSkins is list && data.unlockedSkins.size() >= 1 && data.unlockedSkins.size() <= 10 &&
+             data.unlockedSkins[0] is string &&
+             data.equippedSkin is string && data.equippedSkin.size() >= 1 && data.equippedSkin.size() <= 30 &&
+             data.equippedModel is string && data.equippedModel.size() >= 1 && data.equippedModel.size() <= 30 &&
+             (data.bestPercent is float || data.bestPercent is int) && data.bestPercent >= 0 && data.bestPercent <= 100 &&
+             data.totalKills is int && data.totalKills >= 0 && data.totalKills <= 1000000 &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidMatchRoom(data) {
+      return data.hostId is string && data.hostId.size() >= 1 && data.hostId.size() <= 128 &&
+             data.roomCode is string && data.roomCode.size() >= 4 && data.roomCode.size() <= 12 &&
+             data.status in ['waiting', 'playing', 'finished'] &&
+             data.playerCount is int && data.playerCount >= 1 && data.playerCount <= 5 &&
+             data.memberUids is list && data.memberUids.size() >= 1 && data.memberUids.size() <= 5 &&
+             data.memberUids[0] is string &&
+             data.isPublic is bool &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidRoomPlayer(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 30 &&
+             data.slotIndex is int && data.slotIndex >= 0 && data.slotIndex <= 4 &&
+             (data.x is float || data.x is int) && data.x >= -50 && data.x <= 50 &&
+             (data.z is float || data.z is int) && data.z >= -50 && data.z <= 50 &&
+             (data.yaw is float || data.yaw is int) && data.yaw >= -10 && data.yaw <= 10 &&
+             (data.speed is float || data.speed is int) && data.speed >= 0 && data.speed <= 30 &&
+             data.alive is bool &&
+             data.kills is int && data.kills >= 0 && data.kills <= 9999 &&
+             (data.territoryPct is float || data.territoryPct is int) && data.territoryPct >= 0 && data.territoryPct <= 100 &&
+             data.skinId is string && data.skinId.size() >= 1 && data.skinId.size() <= 30 &&
+             data.modelType is string && data.modelType.size() >= 1 && data.modelType.size() <= 30 &&
+             data.trailFlat is list && data.trailFlat.size() <= 160 &&
+             (data.trailFlat.size() == 0 || (data.trailFlat[0] is float || data.trailFlat[0] is int)) &&
+             data.bombActive is bool &&
+             (data.bombX is float || data.bombX is int) && data.bombX >= -50 && data.bombX <= 50 &&
+             (data.bombZ is float || data.bombZ is int) && data.bombZ >= -50 && data.bombZ <= 50 &&
+             (data.bombTimer is float || data.bombTimer is int) && data.bombTimer >= 0 && data.bombTimer <= 10 &&
+             data.roomOpen is bool &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /users/{userId} {
+      allow get, list: if isSignedIn() && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'coins', 'unlockedSkins', 'equippedSkin', 'equippedModel', 'bestPercent', 'totalKills', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'displayName', 'coins', 'unlockedSkins', 'equippedSkin', 'equippedModel', 'bestPercent', 'totalKills', 'createdAt', 'updatedAt']) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       isValidUserProfile(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'coins', 'unlockedSkins', 'equippedSkin', 'equippedModel', 'bestPercent', 'totalKills', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+    }
+
+    match /rooms/{roomId} {
+      allow get: if isSignedIn() && isValidId(roomId);
+      allow list: if isSignedIn() && (resource.data.isPublic == true || request.auth.uid in resource.data.memberUids);
+
+      allow create: if isSignedIn() &&
+                       isValidId(roomId) &&
+                       incoming().hostId == request.auth.uid &&
+                       request.auth.uid in incoming().memberUids &&
+                       incoming().keys().hasAll(['hostId', 'roomCode', 'status', 'playerCount', 'memberUids', 'isPublic', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['hostId', 'roomCode', 'status', 'playerCount', 'memberUids', 'isPublic', 'createdAt', 'updatedAt']) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       isValidMatchRoom(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(roomId) &&
+                       existing().status != 'finished' &&
+                       incoming().hostId == existing().hostId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().roomCode == existing().roomCode &&
+                       isValidMatchRoom(incoming()) && (
+                         // Action: Join room (adds caller UID to memberUids)
+                         (request.auth.uid in incoming().memberUids &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['memberUids', 'playerCount', 'status', 'updatedAt'])) ||
+                         // Action: Host room state update
+                         (existing().hostId == request.auth.uid &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['memberUids', 'playerCount', 'status', 'isPublic', 'updatedAt']))
+                       );
+
+      allow delete: if isSignedIn() && isValidId(roomId) && existing().hostId == request.auth.uid;
+
+      match /players/{playerId} {
+        allow get: if isSignedIn() && isValidId(roomId) && isValidId(playerId);
+        allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.roomOpen == true);
+
+        allow create: if isSignedIn() &&
+                         isValidId(roomId) &&
+                         isValidId(playerId) &&
+                         playerId == request.auth.uid &&
+                         exists(/databases/$(database)/documents/rooms/$(roomId)) &&
+                         incoming().keys().hasAll(['userId', 'displayName', 'slotIndex', 'x', 'z', 'yaw', 'speed', 'alive', 'kills', 'territoryPct', 'skinId', 'modelType', 'trailFlat', 'bombActive', 'bombX', 'bombZ', 'bombTimer', 'roomOpen', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'displayName', 'slotIndex', 'x', 'z', 'yaw', 'speed', 'alive', 'kills', 'territoryPct', 'skinId', 'modelType', 'trailFlat', 'bombActive', 'bombX', 'bombZ', 'bombTimer', 'roomOpen', 'updatedAt']) &&
+                         isValidRoomPlayer(incoming());
+
+        allow update: if isSignedIn() &&
+                         isValidId(roomId) &&
+                         isValidId(playerId) &&
+                         playerId == request.auth.uid &&
+                         incoming().userId == existing().userId &&
+                         isValidRoomPlayer(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'slotIndex', 'x', 'z', 'yaw', 'speed', 'alive', 'kills', 'territoryPct', 'skinId', 'modelType', 'trailFlat', 'bombActive', 'bombX', 'bombZ', 'bombTimer', 'roomOpen', 'updatedAt']);
+
+        allow delete: if isSignedIn() && isValidId(roomId) && isValidId(playerId) && playerId == request.auth.uid;
+      }
+    }
+  }
+}
